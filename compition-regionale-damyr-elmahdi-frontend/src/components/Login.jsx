@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTranslation } from 'react-i18next'; // Import useTranslation hook
 
 export default function Login() {
-  const { t } = useTranslation(); // Initialize the translation function
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,19 +29,13 @@ export default function Login() {
     setError('');
     
     try {
-      // No longer passing remember flag
-      const response = await login(formData.email, formData.password);
+      const result = await login(formData);
       
-      // Redirect based on user role
-      const { role } = response.user;
-      if (role === 'student') {
-        navigate('/student-dashboard');
-      } else if (role === 'teacher') {
-        navigate('/teacher-dashboard');
-      } else if (role === 'administrator') {
-        navigate('/admin-dashboard');
-      } else {
+      if (result.success) {
+        // Navigate to dashboard after successful login
         navigate('/dashboard');
+      } else {
+        setError(result.error || 'Login failed');
       }
       
     } catch (err) {
@@ -54,36 +46,42 @@ export default function Login() {
         const firstError = Object.values(err.response.data.errors)[0][0];
         setError(firstError);
       } else {
-        setError(t('login.errors.generic'));
+        setError('Une erreur est survenue lors de la connexion');
       }
     }
   };
 
   return (
-    <main className="flex-grow flex items-center justify-center py-12 px-4 bg-gray-50">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800">{t('login.title')}</h2>
-          <p className="mt-2 text-gray-600">{t('login.subtitle')}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Se connecter
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Accédez à votre compte pour participer aux compétitions
+          </p>
         </div>
         
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+        <div className="bg-white rounded-lg shadow-md p-8">
+          {error && (
+            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+          
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('login.form.emailLabel')}</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Adresse email
+              </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-teal-400 focus:border-teal-400"
-                placeholder={t('login.form.emailPlaceholder')}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-teal-400 focus:border-teal-400"
+                placeholder="votre@email.com"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={loading}
@@ -91,14 +89,16 @@ export default function Login() {
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">{t('login.form.passwordLabel')}</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Mot de passe
+              </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required
-                  className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-teal-400 focus:border-teal-400"
+                  className="block w-full border border-gray-300 rounded-md shadow-sm py-3 px-3 pr-10 focus:outline-none focus:ring-teal-400 focus:border-teal-400"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
@@ -108,7 +108,7 @@ export default function Login() {
                   type="button"
                   className="absolute inset-y-0 right-0 px-3 flex items-center"
                   onClick={togglePasswordVisibility}
-                  aria-label={showPassword ? t('login.form.hidePassword') : t('login.form.showPassword')}
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -123,28 +123,40 @@ export default function Login() {
                 </button>
               </div>
             </div>
-          </div>
 
-          <div>
-            <button
-              type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#18bebc] hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-400"
-              disabled={loading}
-            >
-              {loading ? t('login.form.signingIn') : t('login.form.signIn')}
-            </button>
+            <div>
+              <button
+                type="submit"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#18bebc] hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                {loading ? 'Connexion en cours...' : 'Se connecter'}
+              </button>
+            </div>
+          </form>
+          
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Ou</span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+              >
+                Pas de compte ? S'inscrire
+              </button>
+            </div>
           </div>
-        </form>
-        
-        {/* <div className="text-center mt-4">
-          <p className="text-sm text-gray-600">
-            {t('login.noAccount')}{' '}
-            <Link to="/register" className="font-medium text-[#18bebc] hover:text-teal-400">
-              {t('login.registerHere')}
-            </Link>
-          </p>
-        </div> */}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -32,6 +32,8 @@ function App() {
       <div className="App">
         <ProtectedRoute>
           <Dashboard />
+          <WowPage />
+          <SignIn />
         </ProtectedRoute>
       </div>
     </AuthProvider>

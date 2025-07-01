@@ -200,9 +200,6 @@ return [
     */
 
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
-    'secure' => env('SESSION_SECURE_COOKIE', false), // Set to true in production with HTTPS
-    'http_only' => true,
-    'domain' => env('SESSION_DOMAIN'),
 
     /*
     |--------------------------------------------------------------------------

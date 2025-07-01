@@ -13,10 +13,10 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'nom',
-        'prenom',
+        'name',
         'email',
         'password',
+        'role'
     ];
 
     protected $hidden = [
@@ -27,4 +27,44 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function anecdotes()
+    {
+        return $this->hasMany(Anecdote::class);
+    }
+
+    public function votes()
+    {
+        return $this->hasMany(Vote::class);
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'Admin';
+    }
+
+    public function isConnectedUser()
+    {
+        return $this->role === 'utilisateur connecté';
+    }
+
+    public function isVisitor()
+    {
+        return $this->role === 'visiteur';
+    }
+
+    public function canAddAnecdotes()
+    {
+        return in_array($this->role, ['utilisateur connecté', 'Admin']);
+    }
+
+    public function canVote()
+    {
+        return in_array($this->role, ['utilisateur connecté', 'Admin']);
+    }
+
+    public function canModerateAnecdotes()
+    {
+        return $this->role === 'Admin';
+    }
 }

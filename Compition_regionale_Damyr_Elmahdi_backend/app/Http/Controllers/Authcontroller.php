@@ -14,19 +14,20 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'prenom' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'mot_de_passe' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min(8)],
+            'role' => 'sometimes|in:visiteur,utilisateur connecté,Admin'
         ]);
 
         $user = User::create([
-            'nom' => $validated['nom'],
-            'prenom' => $validated['prenom'],
+            'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['mot_de_passe']),
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'] ?? 'visiteur' // Default role
         ]);
 
+        // Auto-login after registration
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -73,5 +74,26 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    public function updateRole(Request $request, User $user)
+    {
+        // Only admin can update user roles
+        if (!Auth::user()->isAdmin()) {
+            return response()->json([
+                'message' => 'Vous n\'avez pas l\'autorisation de modifier les rôles'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'role' => 'required|in:visiteur,utilisateur connecté,Admin'
+        ]);
+
+        $user->update(['role' => $validated['role']]);
+
+        return response()->json([
+            'message' => 'Rôle mis à jour avec succès',
+            'user' => $user
+        ]);
     }
 }
